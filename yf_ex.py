@@ -219,7 +219,7 @@ class update_trading(object):
 		self.symbollist = symbollist
 		self.db = db_trading("trading.db")
 		self.db.create(tablename)
-
+		self.id =0
 		self.syms = []
 		with open(self.symbollist, "r") as s:
 			for line in s:
@@ -227,10 +227,11 @@ class update_trading(object):
 					self.syms.append(line.strip("\n"))
 		print self.syms
 		for i in self.syms:
+			self.id+=1
 			share = yahoo_finance.Share(i)
 			s = share.data_set
 			s["TIMESTAMP"] = str(timenow())
-			o = self.db.prepare_dict(s)
+			o = self.db.prepare_dict(s,self.id)
 			print self.db.okeys
 			self.db.insert_by_keylist(tablename, o, self.db.okeys)
 			#self.db.insert_dict_values(tablename,s)
@@ -341,8 +342,8 @@ class db_trading(db_scheme, db_dict, db):
 		#ID                              INTEGER PRIMARY KEY,
 		self.scheme = """
 			CREATE TABLE IF NOT EXISTS %s ( 
-				
-				TIMESTAMP                                           TEXT,
+				ID                              		PRIMARY KEY,
+				TIMESTAMP                                      DATE,
 				symbol                                         TEXT,
 				Name                                           TEXT,
 				PreviousClose                                  REAL,
@@ -366,12 +367,13 @@ class db_trading(db_scheme, db_dict, db):
 			    Currency                                       TEXT);
 			""" % (self.tablename)
 		self.cur.execute(self.scheme)
-	def prepare_dict(self, ydict):
+	def prepare_dict(self, ydict, id):
 		self.ndict = {}
 		self.keylist = ["symbol", "Name", "PreviousClose","YearRange","YearLow","YearHigh", "ChangeFromYearLow", "PercentChangeFromYearLow", "ChangeFromYearHigh", "PercebtChangeFromYearHigh","Volume", "AverageDailyVolume","ShortRatio",
 "PEGRatio","FiftydayMovingAverage","TwoHundreddayMovingAverage","PriceSales","BookValue","MarketCapitalization","PriceBook","Currency"]
-		self.okeys = ["TIMESTAMP"] + self.keylist
+		self.okeys =  ["ID"]+["TIMESTAMP"] + self.keylist
 		self.ndict["TIMESTAMP"] = str(timenow())
+		self.ndict["ID"] = id
 		for k in self.keylist:
 			self.ndict[k] = ydict[k]
 			print k, self.ndict[k]
@@ -392,7 +394,9 @@ if __name__ == "__main__":
 	#syms = update()
 	#newtable = db_trading()
 	#newtable.create("yahoofinance")
-	a = update_trading("trading")
+	c = db_trading()
+	c.drop("test1")
+	a = update_trading("test1")
 	#d2 = newtable.prepare_dict(d)
 	#newtable.insert_by_keylist(newtable.tablename,d2, newtable.okeys)
 	#newtable.query("*","*")
