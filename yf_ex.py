@@ -1,11 +1,20 @@
 import yahoo_finance
 import cPickle
-import zlib
+import gzip
 import sqlite3
 import os
 from datetime import datetime, date
 def timenow():
 	return datetime.now()
+def get_symbollist(symbollist = "./symbols.txt"):
+	syms = []
+	with open(symbollist, "r") as s:
+			for line in s:
+				if line != None and line != "" and line != "\n":
+					syms.append(line.strip("\n"))
+	print syms
+	return syms
+		
 class db(object):
 	"""Connect to a sqlite3 Database (default = 'test.db'.) and open cursor-object self.cur.
 	Database name is stored in self.dbname.
@@ -194,6 +203,34 @@ class load_obj(object):
 		filename = sym + ".txt"
 		with open(filename, "wb") as f:
 			self.info = cPickle.load(filename)
+class catch_and_save(object):
+	def __init__(self, symbollist = "./symbols.txt"):
+		self.data = []
+		self.syms = get_symbollist(symbollist)
+	def get_data(self):
+		for i in self.syms:
+			self.share = yahoo_finance.Share(i)
+			self.dataset = self.share.data_set
+			self.dataset["TIMESTAMP"] = timenow()
+			self.data.append(self.dataset)
+			print self.dataset
+		print "DATA: ", self.data
+	def save_data(self, filename = str(timenow())):
+		self.filename = fiilename
+		with gzip.open(self.filename, "wb") as f:
+			for i in self.data:
+				f.write(i)
+		print "DATA SAVED!"
+	def load_data(self):
+		if self.filename:
+			with gzip.open(self.filename, "rb") as f:
+				self.data = f.read()
+		print "DATA LOADED!"
+	def __dataprint__(self):
+		if self.data:
+			print self.data_set
+
+
 class update(object):
 	def __init__(self, tablename = "trading", symbollist = "./symbols.txt"):
 		self.symbollist = symbollist
@@ -379,32 +416,12 @@ class db_trading(db_scheme, db_dict, db):
 			print k, self.ndict[k]
 		return self.ndict
 if __name__ == "__main__":
-	#share = yahoo_finance.Share("YHOO")
-	#d = share.data_set
-	#d["TIMESTAMP"] = str(timenow())
-	#db = db_dict()
-	#db.tablename = "newtest"
-	#db.create_dict_table(db.tablename, d)
-	#db.insert_dict_values(db.tablename, d)
-	#db.query("*", "*")
-	#db.commit()
-	#db.close()
-	#print db.rows
-	#db.conn.commit()
-	#syms = update()
-	#newtable = db_trading()
-	#newtable.create("yahoofinance")
-	c = db_trading()
-	c.drop("test1")
-	a = update_trading("test1")
-	#d2 = newtable.prepare_dict(d)
-	#newtable.insert_by_keylist(newtable.tablename,d2, newtable.okeys)
-	#newtable.query("*","*")
-	#newtable.commit()
-	#que = db_trading()
-	#que.tablename = "yahoofinance"
-	#que.query("*","*")
-	#que.close()
+	c = catch_and_save()
+	c.get_data()
+	c.save_data()
+	c.load_data()
+	c.__dataprint__()
+
 
 	
 
